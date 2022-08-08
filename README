@@ -1,0 +1,20 @@
+--Docs
+https://docs.openzeppelin.com/contracts/4.x/
+https://docs.openzeppelin.com/learn/deploying-and-interacting
+https://viblo.asia/p/lam-the-nao-de-upgrade-mot-smart-contract-tren-ethereum-phan-1-07LKXe3PZV4
+https://viblo.asia/p/lam-the-nao-de-upgrade-mot-smart-contract-tren-ethereum-phan-2-phan-cuoi-vyDZOqJG5wj
+https://viblo.asia/p/lam-the-nao-de-mot-smart-contract-co-the-nhan-nft-non-fungible-token-E375z6LW5GW
+https://viblo.asia/p/tim-hieu-ve-flash-loan-tren-aave-Do754244ZM6
+https://docs.aave.com/developers/core-contracts/pool#flashloan
+https://eips.ethereum.org/EIPS/eip-1155
+-- Create project
+npm init -y
+npx truffle init
+npm install --save-dev hardhat
+npx hardhat compile
+npm install @openzeppelin/contracts
+npx hardhat node
+npm install --save-dev @nomiclabs/hardhat-ethers ethers
+
+// hardhat.config.js
+require('@nomiclabs/hardhat-ethers');
