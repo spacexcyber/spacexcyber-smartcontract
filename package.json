@@ -24,7 +24,6 @@
     "hardhat": "^2.10.1"
   },
   "dependencies": {
-    "@normalizex/uniswap-contract": "^1.0.0",
     "@openzeppelin/contracts": "^4.7.2"
   }
 }

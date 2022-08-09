@@ -11,9 +11,7 @@ contract SpaceXCyberItems is ERC1155 {
     // uint256 public constant SWORD = 3;
     // uint256 public constant SHIELD = 4;
 
-    constructor(string memory uri_) ERC1155(uri_) {
-        
-    }
+    constructor(string memory uri_) ERC1155(uri_) {}
 
     /**
      *
