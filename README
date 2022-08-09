@@ -7,6 +7,7 @@ https://viblo.asia/p/lam-the-nao-de-mot-smart-contract-co-the-nhan-nft-non-fungi
 https://viblo.asia/p/tim-hieu-ve-flash-loan-tren-aave-Do754244ZM6
 https://docs.aave.com/developers/core-contracts/pool#flashloan
 https://eips.ethereum.org/EIPS/eip-1155
+https://bscscan.com/address/0xf6bcb7f4ca6aa1b9c13214f4901255ec93851060#code
 -- Create project
 npm init -y
 npx truffle init
