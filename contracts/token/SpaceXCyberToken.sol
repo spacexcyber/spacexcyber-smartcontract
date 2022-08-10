@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import {TokenTimelock} from "@openzeppelin/contracts/token/ERC20/utils/TokenTimelock.sol";
 
 contract SpaceXCyberToken is ERC20, Ownable {
     //Tax 5% buy
@@ -27,6 +28,9 @@ contract SpaceXCyberToken is ERC20, Ownable {
         _mint(owner(), initialSupply);
     }
 
+    /**
+     * override tranfer send tax
+     */
     function transfer(address to, uint256 amount)
         public
         virtual
@@ -37,16 +41,31 @@ contract SpaceXCyberToken is ERC20, Ownable {
     }
 
     /**
-     * 
+     * send tax
+     */
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal override {}
+
+    /**
+     * get pool address wallet
      */
     function getPoolAddress() public view returns (address) {
         return _poolAddress;
     }
 
+    /**
+     * get mkt address wallet
+     */
     function getMarketingAddress() public view returns (address) {
         return _marketingAddress;
     }
 
+    /**
+     * set pool and mkt address wallet
+     */
     function setConfigAddress(address poolAddress, address marketingAddress)
         public
         onlyOwner
@@ -54,11 +73,6 @@ contract SpaceXCyberToken is ERC20, Ownable {
         _poolAddress = payable(poolAddress);
         _marketingAddress = payable(marketingAddress);
     }
-
-    function setFee(uint256 taxFeeOnBuy, uint256 taxFeeOnSell)
-        public
-        onlyOwner
-    {}
 
     function _tranferTax(address account, uint256 amount) internal {}
 }
