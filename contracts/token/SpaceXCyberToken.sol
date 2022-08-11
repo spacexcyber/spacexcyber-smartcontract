@@ -36,7 +36,7 @@ contract SpaceXCyberToken is ERC20, Ownable {
         _marketingAddress = payable(mktAddress_);
 
         //create swap router to swap tax
-        _uniswapV2Router = IUniswapV2Router02(0x03E6c12eF405AC3F642B9184eDed8E1322de1a9e);
+        _uniswapV2Router = IUniswapV2Router02(0xD99D1c33F9fC3444f8101754aBC46c52416550D1);
 
         _uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory())
             .createPair(address(this), _uniswapV2Router.WETH());
