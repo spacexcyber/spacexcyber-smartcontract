@@ -1,8 +1,8 @@
 async function main() {
   // We get the contract to deploy
+  const [owner, account1, account2] = await ethers.getSigners();
   const SpaceXCyberToken = await ethers.getContractFactory("SpaceXCyberToken");
-  console.log("Deploying SpaceXCyberToken...");
-  const spaceXCyberToken = await SpaceXCyberToken.deploy();
+  const spaceXCyberToken = await SpaceXCyberToken.deploy(account1.address, account2.address);
   await spaceXCyberToken.deployed();
   console.log("SpaceXCyberToken deployed to:", spaceXCyberToken.address);
 

@@ -3,51 +3,111 @@
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import {TokenTimelock} from "@openzeppelin/contracts/token/ERC20/utils/TokenTimelock.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
 contract SpaceXCyberToken is ERC20, Ownable {
-    //Tax 5% buy
-    uint256 private _taxFeeOnBuy = 6;
+    using SafeMath for uint256;
+    //Tax 6% when tranfer token, tranfer tax 5% to pool and 1% to mkt
+    uint256 private constant _taxPool = 5;
 
-    //Tax 5% sell
-    uint256 private _taxFeeOnSell = 6;
+    uint256 private constant _taxMarketing = 1;
 
     //Wallet pool send earn when tax
-    address payable private _poolAddress =
-        payable(0x70997970C51812dc3A010C7d01b50e0d17dc79C8);
+    address payable private _poolAddress;
 
     //Wallet mkt send token when tax
-    address payable private _marketingAddress =
-        payable(0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC);
+    address payable private _marketingAddress;
+    IUniswapV2Router02 private _uniswapV2Router;
+    address private _uniswapV2Pair;
 
-    constructor() ERC20("SpaceXCyberToken", "SXC") {
+    constructor(
+        address poolAddress_,
+        address mktAddress_
+    ) ERC20("SpaceXCyberToken", "SXC") {
+        //setup wallet pool and mkt
+        require(
+            poolAddress_ != address(0) && mktAddress_ != address(0),
+            "address not zero"
+        );
+        _poolAddress = payable(poolAddress_);
+
+        _marketingAddress = payable(mktAddress_);
+
+        //create swap router to swap tax
+        _uniswapV2Router = IUniswapV2Router02(0x03E6c12eF405AC3F642B9184eDed8E1322de1a9e);
+
+        _uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory())
+            .createPair(address(this), _uniswapV2Router.WETH());
+
         //mint stake
         _mint(owner(), 90_000_000_000_000_000_000_000_000);
 
         //mint mkt
-        _mint(_marketingAddress, 10_000_000_000_000_000_000_000_000);
+        _mint(mktAddress_, 10_000_000_000_000_000_000_000_000);
     }
 
     /**
-     * override tranfer send tax
-     */
-    function transfer(address to, uint256 amount)
-        public
-        virtual
-        override
-        returns (bool)
-    {
-        return super.transfer(to, amount);
-    }
-
-    /**
-     * send tax
+     * tranfer tax 5% to pool and 1% to marketting
      */
     function _beforeTokenTransfer(
         address from,
         address to,
         uint256 amount
-    ) internal override {}
+    ) internal override {
+        _tranferTax(from, to, amount);
+    }
+
+    /**
+     * tranfer tax 5% to pool and 1% to marketting
+     */
+    function _tranferTax(
+        address from,
+        address to,
+        uint256 amount
+    ) private {
+        if (
+            from != owner() &&
+            to != owner() &&
+            from != _uniswapV2Pair &&
+            from != _poolAddress &&
+            from != _marketingAddress &&
+            to != _poolAddress &&
+            to != _marketingAddress
+        ) {
+            uint256 taxPoolAmount = amount.mul(_taxPool).div(100);
+            uint256 taxMktAmount = amount.mul(_taxMarketing).div(100);
+            if (taxPoolAmount > 0) {
+                amount -= taxPoolAmount;
+            }
+            if (taxPoolAmount > 0) {
+                amount -= taxMktAmount;
+            }
+            //swap to token to pool and mkt wallet
+            _swapTokens(taxPoolAmount.add(taxMktAmount));
+            uint256 balance = address(this).balance;
+            _poolAddress.transfer(balance.mul(80).div(100));
+            _marketingAddress.transfer(balance.mul(20).div(100));
+        }
+    }
+
+    /**
+     * swap token to add pool and mkt wallet
+     */
+    function _swapTokens(uint256 amount) private {
+        address[] memory path = new address[](2);
+        path[0] = address(this);
+        path[1] = _uniswapV2Router.WETH();
+        _approve(address(this), address(_uniswapV2Router), amount);
+        _uniswapV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+            amount,
+            0,
+            path,
+            address(this),
+            block.timestamp
+        );
+    }
 
     /**
      * get pool address wallet
