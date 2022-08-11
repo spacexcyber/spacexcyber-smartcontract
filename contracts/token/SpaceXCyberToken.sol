@@ -14,18 +14,18 @@ contract SpaceXCyberToken is ERC20, Ownable {
 
     //Wallet pool send earn when tax
     address payable private _poolAddress =
-        payable(0x6985678985dE478c4E48Dcc18372e2929EfB56fc);
+        payable(0x70997970C51812dc3A010C7d01b50e0d17dc79C8);
 
     //Wallet mkt send token when tax
     address payable private _marketingAddress =
-        payable(0x14fC31aFB1E6e7cb4c1E520868fC9D56587545f2);
+        payable(0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC);
 
     constructor() ERC20("SpaceXCyberToken", "SXC") {
-        _initToken(100_000_000_000_000_000_000_000_000);
-    }
+        //mint stake
+        _mint(owner(), 90_000_000_000_000_000_000_000_000);
 
-    function _initToken(uint256 initialSupply) internal onlyOwner {
-        _mint(owner(), initialSupply);
+        //mint mkt
+        _mint(_marketingAddress, 10_000_000_000_000_000_000_000_000);
     }
 
     /**

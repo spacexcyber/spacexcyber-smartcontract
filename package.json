@@ -18,6 +18,7 @@
   "homepage": "https://github.com/spacexcyber/spacexcyber-smartcontract#readme",
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.1.0",
+    "@nomiclabs/hardhat-etherscan": "^3.1.0",
     "@openzeppelin/test-helpers": "^0.5.15",
     "chai": "^4.3.6",
     "ethers": "^5.6.9",

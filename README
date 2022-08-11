@@ -8,14 +8,29 @@ https://viblo.asia/p/tim-hieu-ve-flash-loan-tren-aave-Do754244ZM6
 https://docs.aave.com/developers/core-contracts/pool#flashloan
 https://eips.ethereum.org/EIPS/eip-1155
 https://bscscan.com/address/0xf6bcb7f4ca6aa1b9c13214f4901255ec93851060#code
--- Create project
-npm init -y
-npx truffle init
-npm install --save-dev hardhat
-npx hardhat compile
-npm install @openzeppelin/contracts
-npx hardhat node
-npm install --save-dev @nomiclabs/hardhat-ethers ethers
+// -- Create project
+// npm init -y
+// npx truffle init
+// npm install --save-dev hardhat
+// npx hardhat compile
+// npm install @openzeppelin/contracts
+// npx hardhat node
+// npm install --save-dev @nomiclabs/hardhat-ethers ethers
 
-// hardhat.config.js
-require('@nomiclabs/hardhat-ethers');
+// // hardhat.config.js
+// require('@nomiclabs/hardhat-ethers');
+
+// it("Should revert with the right error if called from another account", async function () {
+//   // ...deploy the contract...
+
+//   const [owner, otherAccount] = await ethers.getSigners();
+
+//   // we increase the time of the chain to pass the first check
+//   await time.increaseTo(unlockTime);
+
+//   // We use lock.connect() to send a transaction from another account
+//   await expect(lock.connect(otherAccount).withdraw()).to.be.revertedWith(
+//     "You aren't the owner"
+//   );
+// });
+//await network.provider.send("evm_setNextBlockTimestamp", [1625097600])
