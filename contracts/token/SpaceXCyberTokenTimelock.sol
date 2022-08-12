@@ -2,11 +2,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 contract SpaceXCyberTokenTimelock is Ownable {
     using SafeERC20 for IERC20;
+    using SafeMath for uint256;
 
     // ILO wallet address of tokens after they are released
     mapping(address => uint256) private _iloWalletAddress;
@@ -81,7 +83,10 @@ contract SpaceXCyberTokenTimelock is Ownable {
             "addr not valid"
         );
         require(amount > 0, "amount must greater than zero");
-        require(amount <= 50_000_000_000_000_000_000_000, "amount must less than 50_000");
+        require(
+            amount <= 50_000_000_000_000_000_000_000,
+            "amount must less than 50_000"
+        );
         _icoWalletAddress[addr] = amount;
     }
 
@@ -97,7 +102,10 @@ contract SpaceXCyberTokenTimelock is Ownable {
             "addr not valid"
         );
         require(amount > 0, "amount must greater than zero");
-        require(amount <= 30_000_000_000_000_000_000_000, "amount must less than 30_000");
+        require(
+            amount <= 30_000_000_000_000_000_000_000,
+            "amount must less than 30_000"
+        );
         _iloWalletAddress[addr] = amount;
     }
 
@@ -187,7 +195,7 @@ contract SpaceXCyberTokenTimelock is Ownable {
                 block.timestamp >= releaseTime() + 7 days,
                 "no tokens to claim. claim after 7 days ILO"
             );
-            uint256 amountFirstReceive = (amount * 4) / 10;
+            uint256 amountFirstReceive = amount.mul(4).div(10);
             require(totalAmount > amountFirstReceive, "over balance");
             //tranfer token
             token().safeTransfer(_msgSender(), amountFirstReceive);
@@ -196,10 +204,11 @@ contract SpaceXCyberTokenTimelock is Ownable {
             _updateClaimInfo(amountFirstReceive);
         } else {
             require(
-                block.timestamp >= _lastClaimDate[_msgSender()] + 30 days,
+                block.timestamp >=
+                    _lastClaimDate[_msgSender()] + 30 days,
                 "no tokens to claim. claim after 30 days"
             );
-            uint256 amountReceive = (amount * 5) / 100;
+            uint256 amountReceive = amount.mul(5).div(100);
             require(totalAmount > amountReceive, "over balance");
             if (amountReceived + amountReceive > amount) {
                 token().safeTransfer(_msgSender(), amount - amountReceived);
@@ -233,10 +242,11 @@ contract SpaceXCyberTokenTimelock is Ownable {
         require(amountReceived < amount, "no tokens to claim");
         require(totalAmount > amount, "over balance");
         require(
-            block.timestamp >= _lastClaimDate[_msgSender()] + 30 days,
+            block.timestamp >=
+                _lastClaimDate[_msgSender()] + 30 days,
             "no tokens to claim"
         );
-        uint256 amountReceive = (amount * 5) / 100;
+        uint256 amountReceive = amount.mul(5).div(100);
         require(totalAmount > amountReceive, "over balance");
         if (amountReceived + amountReceive > amount) {
             token().safeTransfer(_msgSender(), amount - amountReceived);

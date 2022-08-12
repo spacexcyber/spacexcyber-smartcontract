@@ -10,22 +10,24 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 contract SpaceXCyberToken is ERC20, Ownable {
     using SafeMath for uint256;
     //Tax 6% when tranfer token, tranfer tax 5% to pool and 1% to mkt
-    uint256 private constant _taxPool = 5;
-
-    uint256 private constant _taxMarketing = 1;
+    uint256 private constant _tax = 6;
 
     //Wallet pool send earn when tax
     address payable private _poolAddress;
 
     //Wallet mkt send token when tax
     address payable private _marketingAddress;
+
+    //uniswap router use swap tax and add liq
     IUniswapV2Router02 private _uniswapV2Router;
     address private _uniswapV2Pair;
 
-    constructor(
-        address poolAddress_,
-        address mktAddress_
-    ) ERC20("SpaceXCyberToken", "SXC") {
+    //timestamp 1 days
+    uint256 private constant _dayTimestamp = 86400;
+
+    constructor(address poolAddress_, address mktAddress_)
+        ERC20("SpaceXCyberToken", "SXC")
+    {
         //setup wallet pool and mkt
         require(
             poolAddress_ != address(0) && mktAddress_ != address(0),
@@ -36,59 +38,56 @@ contract SpaceXCyberToken is ERC20, Ownable {
         _marketingAddress = payable(mktAddress_);
 
         //create swap router to swap tax
-        _uniswapV2Router = IUniswapV2Router02(0xD99D1c33F9fC3444f8101754aBC46c52416550D1);
+        IUniswapV2Router02 uniswapV2Router = IUniswapV2Router02(
+            0xD99D1c33F9fC3444f8101754aBC46c52416550D1
+        );
 
-        _uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory())
-            .createPair(address(this), _uniswapV2Router.WETH());
+        _uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory())
+            .createPair(address(this), uniswapV2Router.WETH());
+        _uniswapV2Router = uniswapV2Router;
 
         //mint stake
         _mint(owner(), 90_000_000_000_000_000_000_000_000);
 
         //mint mkt
-        _mint(mktAddress_, 10_000_000_000_000_000_000_000_000);
+        _mint(_marketingAddress, 10_000_000_000_000_000_000_000_000);
     }
 
-    /**
-     * tranfer tax 5% to pool and 1% to marketting
-     */
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override {
-        _tranferTax(from, to, amount);
-    }
+    event SwapTax(uint256 tokensSwapped, uint256 tokensReceived);
 
     /**
-     * tranfer tax 5% to pool and 1% to marketting
+     * override add tax to pool and mkt wallet
      */
-    function _tranferTax(
-        address from,
-        address to,
-        uint256 amount
-    ) private {
-        if (
-            from != owner() &&
-            to != owner() &&
-            from != _uniswapV2Pair &&
-            from != _poolAddress &&
-            from != _marketingAddress &&
-            to != _poolAddress &&
-            to != _marketingAddress
-        ) {
-            uint256 taxPoolAmount = amount.mul(_taxPool).div(100);
-            uint256 taxMktAmount = amount.mul(_taxMarketing).div(100);
-            if (taxPoolAmount > 0) {
-                amount -= taxPoolAmount;
-            }
-            if (taxPoolAmount > 0) {
-                amount -= taxMktAmount;
-            }
+    function transfer(address to, uint256 amount)
+        public
+        virtual
+        override
+        returns (bool)
+    {
+        if (to != owner() && to != _poolAddress && to != _marketingAddress) {
+            require(to != address(0), "ERC20: transfer to the zero address");
+            require(
+                balanceOf(_msgSender()) > amount,
+                "ERC20: transfer amount exceeds balance"
+            );
+            uint256 taxAmount = amount.div(_tax);
+            uint256 newAmount = amount.sub(taxAmount);
+
+            require(taxAmount.add(newAmount) == amount, "Mute: math is broken");
+
             //swap to token to pool and mkt wallet
-            _swapTokens(taxPoolAmount.add(taxMktAmount));
+            _swapTokens(taxAmount);
             uint256 balance = address(this).balance;
-            _poolAddress.transfer(balance.mul(80).div(100));
-            _marketingAddress.transfer(balance.mul(20).div(100));
+            emit SwapTax(taxAmount, balance);
+            if (balance > 0) {
+                _poolAddress.transfer(balance.div(83));
+                _marketingAddress.transfer(
+                    balance.sub(balance.div(83))
+                );
+            }
+            return super.transfer(to, newAmount);
+        } else {
+            return super.transfer(to, amount);
         }
     }
 
@@ -134,5 +133,21 @@ contract SpaceXCyberToken is ERC20, Ownable {
         _marketingAddress = payable(marketingAddress);
     }
 
-    function _tranferTax(address account, uint256 amount) internal {}
+    /**
+     * add liq
+     */
+    function addLiquidity(uint256 tokenAmount, uint256 ethAmount) internal {
+        // approve token transfer to cover all possible scenarios
+        _approve(address(this), address(_uniswapV2Router), tokenAmount.mul(2));
+
+        // add the liquidity
+        _uniswapV2Router.addLiquidityETH{value: ethAmount}(
+            address(this),
+            tokenAmount,
+            0, // slippage is unavoidable
+            0, // slippage is unavoidable
+            owner(),
+            block.timestamp
+        );
+    }
 }
