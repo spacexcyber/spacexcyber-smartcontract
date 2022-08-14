@@ -57,3 +57,5 @@ https://bscscan.com/address/0xf6bcb7f4ca6aa1b9c13214f4901255ec93851060#code
     '0x209b5A45897f95b59952d3E7be807d53CDdD0aa6',
     '0xB7b789A22b12Df97BD12dE20cfEe2308BB01c06b'
   ]
+
+  npx hardhat run --network testnet scripts/deploy.token.js

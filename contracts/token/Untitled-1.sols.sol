@@ -22,29 +22,23 @@ contract SpaceXCyberToken is ERC20, Ownable {
     IUniswapV2Router02 public uniswapV2Router;
     address public uniswapV2Pair;
 
+    //timestamp 1 days
+    uint256 private constant _dayTimestamp = 86400;
+
     //enable tax
     bool private _enableTax;
 
     //lock in swap to pool and mkt wallet
-    bool private _inSwap = false;
+    bool public inSwap = false;
     modifier lockTheSwap() {
-        _inSwap = true;
+        inSwap = true;
         _;
-        _inSwap = false;
+        inSwap = false;
     }
-    
-     receive() external payable {}
 
-    /**
-     * Max supply tokens
-     */
-    uint256 private _maxTotalSupply;
-
-    constructor(
-        address payable poolAddress_,
-        address payable mktAddress_,
-        address lockAddressContract_
-    ) ERC20("SpaceXCyberToken", "SXC") {
+    constructor(address payable poolAddress_, address payable mktAddress_)
+        ERC20("SpaceXCyberToken", "SXC")
+    {
         //setup wallet pool and mkt
         require(
             poolAddress_ != address(0) && mktAddress_ != address(0),
@@ -54,34 +48,25 @@ contract SpaceXCyberToken is ERC20, Ownable {
 
         _marketingAddress = mktAddress_;
 
-        //max total supply
-        _maxTotalSupply = 100_000_000_000_000_000;
-
         //create swap router to swap tax
-        IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(
+        IUniswapV2Router02 uniswapV2Router_ = IUniswapV2Router02(
             0xD99D1c33F9fC3444f8101754aBC46c52416550D1
         );
-        uniswapV2Router = _uniswapV2Router;
-        uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory())
-            .createPair(address(this), _uniswapV2Router.WETH());
 
-        //mint to lockContract
-        require(
-            lockAddressContract_ != address(0) &&
-                lockAddressContract_ != owner()
-        );
-        _mint(lockAddressContract_, 37_000_000_000_000_000);
+        uniswapV2Pair = IUniswapV2Factory(uniswapV2Router_.factory())
+            .createPair(address(this), uniswapV2Router_.WETH());
+        uniswapV2Router = uniswapV2Router_;
 
         //mint stake
-        _mint(owner(), 53_000_000_000_000_000);
+        _mint(owner(), 90_000_000_000_000_000_000_000_000);
 
         //mint mkt
-        _mint(_marketingAddress, 10_000_000_000_000_000);
+        _mint(_marketingAddress, 10_000_000_000_000_000_000_000_000);
 
         //disable tax
         _enableTax = true;
     }
-    
+
     /**
      * Log when swap tax to pool and mkt wallet
      */
@@ -97,15 +82,18 @@ contract SpaceXCyberToken is ERC20, Ownable {
     ) internal override {
         //amount to tranfer
         uint256 tranferAmount = amount;
-        if (from != owner() && to != owner()) {
+        if (
+            from != owner() &&
+            to != owner() &&
+            from != address(this) &&
+            to != address(this)
+        ) {
             uint256 contractBalance = balanceOf(address(this));
             if (
-                from != address(this) &&
-                to != address(this) &&
-                !_inSwap &&
-                from != uniswapV2Pair &&
+                !inSwap &&
                 _enableTax &&
-                contractBalance > 0
+                contractBalance > 0 &&
+                from != uniswapV2Pair
             ) {
                 //swap to token to pool and mkt wallet
                 _swapTokens(contractBalance);
@@ -123,11 +111,9 @@ contract SpaceXCyberToken is ERC20, Ownable {
 
             //get tax
             if (
-                from != address(this) &&
-                to != address(this) &&
                 from != _poolAddress &&
-                to != _poolAddress &&
                 from != _marketingAddress &&
+                to != _poolAddress &&
                 to != _marketingAddress &&
                 ((from == uniswapV2Pair && to != address(uniswapV2Router)) ||
                     (to == uniswapV2Pair && from != address(uniswapV2Router)))
@@ -140,49 +126,28 @@ contract SpaceXCyberToken is ERC20, Ownable {
                 );
                 //tranfer
                 super._transfer(from, address(this), taxAmount);
-                tranferAmount = newAmount;
+                tranferAmount = amount.sub(taxAmount);
             }
         }
 
         super._transfer(from, to, tranferAmount);
     }
 
-    function swapToPoolAndMktWallet() external {
-        uint256 contractBalance = balanceOf(address(this));
-        require(contractBalance > 0, "over balance");
-        //swap to token to pool and mkt wallet
-        _swapTokens(contractBalance);
-        uint256 balance = address(this).balance;
-        //emit event swap
-        emit SwapTax(contractBalance, balance);
-        if (balance > 0) {
-            uint256 rateToPool = 80;
-            _poolAddress.transfer(balance.mul(rateToPool).div(100));
-            _marketingAddress.transfer(
-                balance.sub(balance.mul(rateToPool).div(100))
-            );
-        }
-    }
-
     /**
      * swap token to add pool and mkt wallet
      */
-    function _swapTokens(uint256 tokenAmount) private lockTheSwap {
+    function _swapTokens(uint256 amount) private lockTheSwap {
         address[] memory path = new address[](2);
         path[0] = address(this);
         path[1] = uniswapV2Router.WETH();
-        _approve(address(this), address(uniswapV2Router), tokenAmount);
+        _approve(address(this), address(uniswapV2Router), amount);
         uniswapV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
-            tokenAmount,
+            amount,
             0,
             path,
             address(this),
             block.timestamp
         );
-    }
-
-    function decimals() public view virtual override returns (uint8) {
-        return 9;
     }
 
     /**
@@ -254,16 +219,5 @@ contract SpaceXCyberToken is ERC20, Ownable {
             owner(),
             block.timestamp
         );
-    }
-
-    /**
-     * @dev See {ERC20-_mint}.
-     */
-    function _mint(address account, uint256 amount) internal virtual override {
-        require(
-            totalSupply() + amount <= _maxTotalSupply,
-            "ERC20Capped: cap exceeded"
-        );
-        super._mint(account, amount);
     }
 }
